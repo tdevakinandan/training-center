@@ -10,45 +10,56 @@ import applicationRoutes from "./routes/applicationRoutes.js";
 
 const app = express();
 
+// --------------------
 // Middleware
-app.use(cors({ origin: "*", credentials: true }));
+// --------------------
+app.use(cors({ origin: "*" })); // Allow all origins (can restrict to your frontend URL later)
 app.use(express.json());
-
-// API test route
-app.get("/api", (_, res) => res.send("API OK"));
-
-// Routes
-app.use("/api/leads", leadRoutes);
-app.use("/api/application", applicationRoutes);
+app.use(express.urlencoded({ extended: true }));
 
 // --------------------
-// Serve frontend build
+// API test route
+// --------------------
+app.get("/api", (_, res) => res.send({ success: true, message: "API OK" }));
+
+// --------------------
+// Routes
+// --------------------
+app.use("/api/leads", leadRoutes);          // GET / POST leads
+app.use("/api/application", applicationRoutes); // GET / POST applications
+
+// --------------------
+// Serve frontend build (React/Vite)
 // --------------------
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-app.use(express.static(path.join(__dirname, "../frontend/dist")));
+const frontendPath = path.join(__dirname, "../frontend/dist");
+
+app.use(express.static(frontendPath));
 
 // Serve uploads folder
 app.use("/uploads", express.static(path.join(path.resolve(), "uploads")));
 
+// Serve index.html for all other routes (SPA fallback)
 app.get("*", (_, res) => {
-  res.sendFile(path.join(__dirname, "../frontend/dist/index.html"));
+  res.sendFile(path.join(frontendPath, "index.html"));
 });
 
 // --------------------
-// Connect Mongo + Start
+// MongoDB Connection + Server Start
 // --------------------
+const PORT = process.env.PORT || 5000;
+
 mongoose
   .connect(process.env.MONGO_URI)
   .then(() => {
     console.log("✅ Mongo connected");
-    const port = process.env.PORT || 5000;
-    app.listen(port, "0.0.0.0", () =>
-      console.log(`🚀 Server running on ${port}`)
+    app.listen(PORT, "0.0.0.0", () =>
+      console.log(`🚀 Server running on port ${PORT}`)
     );
   })
-  .catch((e) => {
-    console.error("❌ Mongo connect error:", e);
+  .catch((err) => {
+    console.error("❌ Mongo connection error:", err);
     process.exit(1);
   });
