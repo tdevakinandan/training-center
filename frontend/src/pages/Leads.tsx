@@ -28,14 +28,18 @@ interface Application {
   [key: string]: any;
 }
 
+const API_BASE = import.meta.env.VITE_API_BASE;
+
 const fetchLeads = async (): Promise<Lead[]> => {
-  const { data } = await axios.get<{ success: boolean; leads?: Lead[] }>("/api/leads");
+  const { data } = await axios.get<{ success: boolean; leads?: Lead[] }>(
+    `${API_BASE}/leads`
+  );
   return data.leads || [];
 };
 
 const fetchApplications = async (): Promise<Application[]> => {
   const { data } = await axios.get<{ success: boolean; applications: Application[] }>(
-    "/api/application"
+    `${API_BASE}/application`
   );
   return data.applications || [];
 };
@@ -86,7 +90,7 @@ const Leads = () => {
     setMessage({ text: "", type: "" });
     setLoading(true);
     try {
-      const res = await axios.post(`${import.meta.env.VITE_API_BASE}/leads`, formData);
+      const res = await axios.post(`${API_BASE}/leads`, formData);
       if (res.data.success) {
         setMessage({ text: "✅ Lead saved successfully!", type: "success" });
         setFormData({ name: "", email: "", phone: "" });
@@ -260,10 +264,10 @@ const Leads = () => {
             </thead>
             <tbody>
               {leads.map((lead) => {
-               const baseUrl = import.meta.env.VITE_API_BASE.replace("/api", "");
-               const link = lead.applicationToken
-                ? `${baseUrl}/application?token=${lead.applicationToken}`
-                : "";
+                const baseUrl = API_BASE.replace("/api", "");
+                const link = lead.applicationToken
+                  ? `${baseUrl}/application?token=${lead.applicationToken}`
+                  : "";
 
                 return (
                   <tr key={lead._id}>
