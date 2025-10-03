@@ -260,9 +260,12 @@ const Leads = () => {
             </thead>
             <tbody>
               {leads.map((lead) => {
+              const baseUrl = import.meta.env.VITE_API_BASE.replace("/api", ""); 
+
                 const link = lead.applicationToken
-                  ? `http://localhost:5000/application?token=${lead.applicationToken}`
+                  ? `${baseUrl}/application?token=${lead.applicationToken}`
                   : "";
+
                 return (
                   <tr key={lead._id}>
                     <td className="border px-4 py-2">{lead.name}</td>
