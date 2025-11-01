@@ -688,8 +688,8 @@ Your employment with the Company shall be terminated immediately forthwith in th
 
     addFooter(doc);
 
-    // === PAGE 4 ===
-    // === Compensation Sheet Header ===
+// === PAGE 4 ===
+// === Compensation Sheet Header ===
 doc.addPage();
 contentStartY = addLogo(30);
 contentStartY += 20;
@@ -701,14 +701,18 @@ All the above mentioned terms and conditions will come in force from your date o
   { width: 450, lineGap: 1.4 }
 );
 
-// Compensation Sheet Header
+// === Compensation Sheet Header ===
 doc.moveDown(2);
 doc.font("Helvetica-Bold").fontSize(14).text("COMPENSATION SHEET", { align: "center" });
 doc.moveDown(1);
 
 // ===== Salary Calculation based on Annual CTC =====
-const annualCTC = app.ctcAnnual || app.ctc || 252012; // Annual CTC from DB
-const CTCMonthly = Math.round(annualCTC / 12); // Monthly derived from annual
+const annualCTC = Number(app.ctcAnnual || app.ctc || 252012); // Ensure numeric
+if (isNaN(annualCTC) || annualCTC <= 0) {
+  console.warn(`⚠️ Invalid CTC value detected: ${app.ctcAnnual || app.ctc}`);
+}
+
+const CTCMonthly = Math.round(annualCTC / 12);
 const basic = Math.round(CTCMonthly * 0.61);
 const hra = Math.round(CTCMonthly * 0.23);
 const bonus = Math.round(CTCMonthly * 0.051);
@@ -728,9 +732,11 @@ const totalDeduction = employeeEsi + providentFund + professionalTax;
 // Net Take Home
 const netTakeHome = grossSalary - totalDeduction;
 
-// Helper for annual values
+// Helper for annual values and formatted output
 const annual = (v) => v * 12;
+const fmt = (n) => (typeof n === "number" ? n.toLocaleString("en-IN") : n);
 
+// === Table Layout Settings ===
 let startX = 50;
 let startY = doc.y;
 let rowHeight = 20;
@@ -745,11 +751,11 @@ function drawRow(y, col1, col2, col3, isHeader = false) {
 
   doc.font(isHeader ? "Helvetica-Bold" : "Helvetica").fontSize(11)
     .text(col1, startX + 5, y + 5)
-    .text(col2, startX + col1Width + 5, y + 5)
-    .text(col3, startX + col1Width + col2Width + 5, y + 5);
+    .text(fmt(col2), startX + col1Width + 5, y + 5)
+    .text(fmt(col3), startX + col1Width + col2Width + 5, y + 5);
 }
 
-// Salary Table
+// === Salary Table ===
 drawRow(startY, "Pay Heads", "Monthly Pay (Rs.)", "Annual Pay (Rs.)", true); startY += rowHeight;
 drawRow(startY, "Basic", basic, annual(basic)); startY += rowHeight;
 drawRow(startY, "House Rent Allowance", hra, annual(hra)); startY += rowHeight;
@@ -770,7 +776,7 @@ drawRow(startY, "Professional Tax", professionalTax, annual(professionalTax)); s
 drawRow(startY, "Total Deduction", totalDeduction, annual(totalDeduction)); startY += rowHeight;
 drawRow(startY, "Net Take Home", netTakeHome, annual(netTakeHome)); startY += rowHeight + 15;
 
-// ===== Signature Section =====
+// === Signature Section ===
 doc.moveDown(1);
 doc.text("With Warm Regards,", startX, doc.y);
 
@@ -785,33 +791,38 @@ try {
   doc.moveDown(8);
 }
 
-// ✅ Dynamic from SettingModel
+// === Authorized Signatory Section ===
 doc.text(authorizedPerson || "Authorized Signatory", startX, doc.y);
 doc.text(settings?.authorizedDesignation || "Founder & CEO", startX, doc.y + 15);
 
 addFooter(doc);
 
+// 💾 Save Salary Details to Database
+try {
+  await Application.findByIdAndUpdate(app._id, {
+    salaryDetails: {
+      basic,
+      houseRentAllowance: hra,
+      statutoryBonus: bonus,
+      employerEsi,
+      employerPf,
+      employeeEsi,
+      providentFund,
+      professionalTax,
+      grossSalary,
+      totalContribution,
+      totalDeduction,
+      netTakeHome,
+    },
+  });
+  console.log("✅ Salary details saved to DB");
+} catch (err) {
+  console.error("❌ Error saving salary details:", err.message);
+}
 
-  // 💾 Save Salary Details to Database
-await Application.findByIdAndUpdate(app._id, {
-  salaryDetails: {
-    basic,
-    houseRentAllowance: hra,
-    statutoryBonus: bonus,
-    employerEsi,
-    employerPf,
-    employeeEsi,
-    providentFund,
-    professionalTax,
-    grossSalary,
-    totalContribution,
-    totalDeduction,
-    netTakeHome,
-  },
-});
-
-// End PDF
+// === End PDF ===
 doc.end();
+
   } catch (err) {
     console.error("Appointment letter generation error:", err);
     res.status(500).json({ success: false, message: "Server error" });
