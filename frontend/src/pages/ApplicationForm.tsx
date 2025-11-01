@@ -40,7 +40,7 @@ const ApplicationForm = () => {
     const fetchLead = async () => {
       try {
         const res = await axios.get(
-          `${import.meta.env.PUBLIC_APP}/leads/by-token/${token}`
+          `${import.meta.env.VITE_API_BASE}/leads/by-token/${token}`
         );
         if (res.data.success) setLead(res.data.lead);
         else setMessage("Invalid or expired link.");
@@ -80,7 +80,7 @@ const ApplicationForm = () => {
       });
 
       const res = await axios.post(
-        `${import.meta.env.PUBLIC_APP}/application`,
+        `${import.meta.env.VITE_API_BASE}/application`,
         form,
         { headers: { "Content-Type": "multipart/form-data" } }
       );
