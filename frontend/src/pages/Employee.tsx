@@ -34,6 +34,12 @@ interface UpdateDateInput {
   date: string;
 }
 
+// ✅ Set backend base URL dynamically (Render or localhost)
+const API_BASE_URL =
+  import.meta.env.VITE_API_URL ||
+  "https://training-center-backend-d4sd.onrender.com";
+
+axios.defaults.baseURL = API_BASE_URL;
 // 🔹 Fetch all applications
 const fetchApplications = async (): Promise<Application[]> => {
   const { data } = await axios.get("/api/application");
