@@ -15,34 +15,31 @@ const app = express();
 app.use(cors({ origin: "*" }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use("/api/settings", SettingRoutes); // ✅ very important
 
-// API Routes
-app.use("/api/settings", SettingRoutes);
+// API test
+app.get("/api", (_, res) => res.send({ success: true, message: "API OK" }));
+
+// Routes
 app.use("/api/leads", leadRoutes);
 app.use("/api/application", applicationRoutes);
 
-// Test API
-app.get("/api", (_, res) => res.send({ success: true, message: "API OK" }));
-
-// Paths setup
+// Serve frontend
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-
-// ✅ Serve frontend build (for Render deployment)
 const frontendPath = path.join(__dirname, "../frontend/dist");
 app.use(express.static(frontendPath));
 
-// ✅ Serve uploads folder
+// Serve uploads
 app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
-// ✅ Handle SPA (Single Page App) fallback
+// SPA fallback
 app.get("*", (_, res) => {
   res.sendFile(path.join(frontendPath, "index.html"));
 });
 
-// ✅ MongoDB connection and server start
+// Mongo + server
 const PORT = process.env.PORT || 5000;
-
 mongoose
   .connect(process.env.MONGO_URI)
   .then(() => {
