@@ -40,7 +40,7 @@ const ApplicationForm = () => {
     const fetchLead = async () => {
       try {
         const res = await axios.get(
-          `${import.meta.env.PUBLIC_APP_URL}/leads/by-token/${token}`
+          `${import.meta.env.PUBLIC_APP}/leads/by-token/${token}`
         );
         if (res.data.success) setLead(res.data.lead);
         else setMessage("Invalid or expired link.");
