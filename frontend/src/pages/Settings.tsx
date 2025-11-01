@@ -54,7 +54,7 @@ const Settings = () => {
       if (companyLogo) data.append("companyLogo", companyLogo);
       if (stamp) data.append("stamp", stamp);
 
-      const res = await axios.post("http://localhost:5000/api/settings/save", data, {
+      const res = await axios.post("https://training-center-backend-d4sd.onrender.com/api/settings", data, {
         headers: { "Content-Type": "multipart/form-data" },
       });
 
