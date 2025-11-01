@@ -80,7 +80,7 @@ const ApplicationForm = () => {
       });
 
       const res = await axios.post(
-        `${import.meta.env.VITE_API_BASE}/application`,
+        `${import.meta.env.PUBLIC_APP_URL}/application`,
         form,
         { headers: { "Content-Type": "multipart/form-data" } }
       );
