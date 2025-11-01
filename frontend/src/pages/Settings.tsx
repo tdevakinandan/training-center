@@ -1,17 +1,15 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 
-const API_BASE = "https://training-center-frontend-ufmn.onrender.com/api/settings";
-
 const Settings = () => {
   const [formData, setFormData] = useState({
     companyName: "",
     logoAlignment: "left",
     address: "",
     authorizedPerson: "",
-    authorizedDesignation: "",
+    authorizedDesignation: "", // ✅ new field
     purpose: "",
-    place: "",
+    place: "", // ✅ new field
     phone: "",
     email: "",
   });
@@ -27,7 +25,7 @@ const Settings = () => {
 
   const fetchCompanies = async () => {
     try {
-      const res = await axios.get(`${API_BASE}/list`);
+      const res = await axios.get("https://training-center-backend-d4sd.onrender.com/api/settings");
       setCompanies(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
       console.error("Error fetching companies:", err);
@@ -56,13 +54,11 @@ const Settings = () => {
       if (companyLogo) data.append("companyLogo", companyLogo);
       if (stamp) data.append("stamp", stamp);
 
-      const res = await axios.post(`${API_BASE}/save`, data, {
+      const res = await axios.post("http://localhost:5000/api/settings/save", data, {
         headers: { "Content-Type": "multipart/form-data" },
       });
 
-      alert(res.data.message || "Settings saved successfully!");
-      setCompanyLogo(null);
-      setStamp(null);
+      alert(res.data.message);
       await fetchCompanies();
     } catch (error) {
       console.error("Error saving settings:", error);
@@ -84,8 +80,6 @@ const Settings = () => {
         phone: selected.phone || "",
         email: selected.email || "",
       });
-      setCompanyLogo(null);
-      setStamp(null);
     } else {
       setFormData({
         companyName: "",
@@ -143,7 +137,8 @@ const Settings = () => {
         <FileInput label="Stamp" onChange={(e) => handleFileChange(e, "stamp")} preview={stamp} />
         <Input label="Authorized Person" name="authorizedPerson" value={formData.authorizedPerson} onChange={handleChange} />
         <Input label="Authorized Designation" name="authorizedDesignation" value={formData.authorizedDesignation} onChange={handleChange} />
-
+        
+        {/* ✅ Purpose Dropdown */}
         <Select
           label="Purpose"
           name="purpose"
