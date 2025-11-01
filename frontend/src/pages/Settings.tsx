@@ -1,15 +1,18 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 
+// ✅ Backend API base URL (Render)
+const API_BASE = "https://training-center-backend-d4sd.onrender.com/api/settings";
+
 const Settings = () => {
   const [formData, setFormData] = useState({
     companyName: "",
     logoAlignment: "left",
     address: "",
     authorizedPerson: "",
-    authorizedDesignation: "", // ✅ new field
+    authorizedDesignation: "",
     purpose: "",
-    place: "", // ✅ new field
+    place: "",
     phone: "",
     email: "",
   });
@@ -19,13 +22,14 @@ const Settings = () => {
   const [companies, setCompanies] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  // ✅ Fetch companies list when page loads
   useEffect(() => {
     fetchCompanies();
   }, []);
 
   const fetchCompanies = async () => {
     try {
-      const res = await axios.get("https://training-center-backend-d4sd.onrender.com/api/settings");
+      const res = await axios.get(`${API_BASE}/list`);
       setCompanies(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
       console.error("Error fetching companies:", err);
@@ -35,17 +39,20 @@ const Settings = () => {
     }
   };
 
+  // ✅ Handle input changes
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData((p) => ({ ...p, [name]: value }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  // ✅ Handle logo/stamp file selection
   const handleFileChange = (e, type) => {
     const file = e.target.files?.[0] || null;
     if (type === "logo") setCompanyLogo(file);
     if (type === "stamp") setStamp(file);
   };
 
+  // ✅ Save or update company settings
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
@@ -54,11 +61,13 @@ const Settings = () => {
       if (companyLogo) data.append("companyLogo", companyLogo);
       if (stamp) data.append("stamp", stamp);
 
-      const res = await axios.post("https://training-center-backend-d4sd.onrender.com/api/settings", data, {
+      const res = await axios.post(`${API_BASE}/save`, data, {
         headers: { "Content-Type": "multipart/form-data" },
       });
 
-      alert(res.data.message);
+      alert(res.data.message || "Settings saved successfully!");
+      setCompanyLogo(null);
+      setStamp(null);
       await fetchCompanies();
     } catch (error) {
       console.error("Error saving settings:", error);
@@ -66,6 +75,7 @@ const Settings = () => {
     }
   };
 
+  // ✅ Load selected company data into the form
   const handleSelectCompany = (e) => {
     const selected = companies.find((c) => c.companyName === e.target.value);
     if (selected) {
@@ -80,6 +90,8 @@ const Settings = () => {
         phone: selected.phone || "",
         email: selected.email || "",
       });
+      setCompanyLogo(null);
+      setStamp(null);
     } else {
       setFormData({
         companyName: "",
@@ -99,7 +111,7 @@ const Settings = () => {
     <div className="p-6 max-w-2xl mx-auto bg-white shadow rounded-lg">
       <h1 className="text-2xl font-semibold mb-6 text-gray-800">Company Settings</h1>
 
-      {/* Select Company */}
+      {/* ✅ Select Existing Company */}
       <div className="mb-6">
         <label className="block text-gray-700 mb-2 font-medium">Select Company</label>
         {loading ? (
@@ -122,7 +134,7 @@ const Settings = () => {
         )}
       </div>
 
-      {/* Form */}
+      {/* ✅ Company Form */}
       <form onSubmit={handleSubmit} className="space-y-5">
         <Input label="Company Name" name="companyName" value={formData.companyName} onChange={handleChange} required />
         <FileInput label="Company Logo" onChange={(e) => handleFileChange(e, "logo")} preview={companyLogo} />
@@ -137,7 +149,7 @@ const Settings = () => {
         <FileInput label="Stamp" onChange={(e) => handleFileChange(e, "stamp")} preview={stamp} />
         <Input label="Authorized Person" name="authorizedPerson" value={formData.authorizedPerson} onChange={handleChange} />
         <Input label="Authorized Designation" name="authorizedDesignation" value={formData.authorizedDesignation} onChange={handleChange} />
-        
+
         {/* ✅ Purpose Dropdown */}
         <Select
           label="Purpose"
@@ -167,7 +179,7 @@ const Settings = () => {
   );
 };
 
-// Small UI Components
+// ✅ Reusable Input Component
 const Input = ({ label, ...props }) => (
   <div>
     <label className="block text-gray-700 mb-2 font-medium">{label}</label>
@@ -175,6 +187,7 @@ const Input = ({ label, ...props }) => (
   </div>
 );
 
+// ✅ Reusable Textarea Component
 const Textarea = ({ label, ...props }) => (
   <div>
     <label className="block text-gray-700 mb-2 font-medium">{label}</label>
@@ -182,6 +195,7 @@ const Textarea = ({ label, ...props }) => (
   </div>
 );
 
+// ✅ Reusable FileInput Component
 const FileInput = ({ label, onChange, preview }) => (
   <div>
     <label className="block text-gray-700 mb-2 font-medium">{label}</label>
@@ -190,6 +204,7 @@ const FileInput = ({ label, onChange, preview }) => (
   </div>
 );
 
+// ✅ Reusable Select Component
 const Select = ({ label, name, value, onChange, options }) => (
   <div>
     <label className="block text-gray-700 mb-2 font-medium">{label}</label>
