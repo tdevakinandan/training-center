@@ -11,35 +11,43 @@ import SettingRoutes from "./routes/SettingRoute.js";
 
 const app = express();
 
-// Middleware
-app.use(cors({ origin: "*" }));
+// ✅ Middleware
+app.use(
+  cors({
+    origin: "*", // Allow all origins (you can restrict later)
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
+);
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use("/api/settings", SettingRoutes); // ✅ very important
 
-// API test
-app.get("/api", (_, res) => res.send({ success: true, message: "API OK" }));
-
-// Routes
+// ✅ API routes
+app.use("/api/settings", SettingRoutes);
 app.use("/api/leads", leadRoutes);
 app.use("/api/application", applicationRoutes);
 
-// Serve frontend
+// ✅ API test route
+app.get("/api", (_, res) => res.send({ success: true, message: "API OK" }));
+
+// ✅ Serve frontend build
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const frontendPath = path.join(__dirname, "../frontend/dist");
 app.use(express.static(frontendPath));
 
-// Serve uploads
+// ✅ Serve uploaded files
 app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
-// SPA fallback
+// ✅ Handle SPA routing (for React Router)
 app.get("*", (_, res) => {
   res.sendFile(path.join(frontendPath, "index.html"));
 });
 
-// Mongo + server
+// ✅ MongoDB + Server Start
 const PORT = process.env.PORT || 5000;
+
 mongoose
   .connect(process.env.MONGO_URI)
   .then(() => {

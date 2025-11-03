@@ -25,11 +25,14 @@ interface Application {
   bankPassbook?: string;
   pfFile?: string;
   referenceFile?: string;
+  empId?: string;
   [key: string]: any;
 }
 
+// ✅ Base API URL from .env
 const API_BASE = import.meta.env.VITE_API_BASE;
 
+// -------------------- FETCH FUNCTIONS -------------------- //
 const fetchLeads = async (): Promise<Lead[]> => {
   const { data } = await axios.get<{ success: boolean; leads?: Lead[] }>(
     `${API_BASE}/leads`
@@ -44,6 +47,7 @@ const fetchApplications = async (): Promise<Application[]> => {
   return data.applications || [];
 };
 
+// -------------------- COMPONENT START -------------------- //
 const Leads: React.FC = () => {
   const [formData, setFormData] = useState({ name: "", email: "", phone: "" });
   const [message, setMessage] = useState<{ text: string; type: "success" | "error" | "" }>({
@@ -54,63 +58,56 @@ const Leads: React.FC = () => {
   const [Verify, setVerify] = useState<"leads" | "applications">("leads");
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
-  // Popup states
   const [editingApp, setEditingApp] = useState<Application | null>(null);
   const [selectedFiles, setSelectedFiles] = useState<{ [key: string]: File | null }>({});
   const [showAssignPopup, setShowAssignPopup] = useState(false);
+  const [companies, setCompanies] = useState<{ name: string }[]>([]);
+  const [applications, setApplications] = useState<Application[]>([]);
+
   const [assignData, setAssignData] = useState({
     companyName: "",
     jobType: "",
     mentorName: "",
     mentorDesignation: "",
-    empId: "", // ✅ Added Employee ID
+    empId: "",
   });
 
-  const [companies, setCompanies] = useState<{ name: string }[]>([]);
+  // ✅ Fetch company list
+  useEffect(() => {
+    const fetchCompanies = async () => {
+      try {
+        const res = await axios.get(`${API_BASE}/settings/list`);
+        const raw =
+          res.data.data ||
+          res.data.settings ||
+          res.data.result ||
+          res.data.list ||
+          res.data ||
+          [];
+        const list = Array.isArray(raw) ? raw : [];
+        const companyList = list.map((item: any) => ({
+          name: item.name || item.companyName || item.title || "Unnamed Company",
+        }));
+        setCompanies(companyList);
+      } catch (err) {
+        console.error("Error fetching companies:", err);
+      }
+    };
+    fetchCompanies();
+  }, []);
 
-useEffect(() => {
-  const fetchCompanies = async () => {
-    try {
-      const res = await axios.get(`${API_BASE}/settings/list`);
-      console.log("Company API Response:", res.data);
-
-      // Handle all possible API structures
-      const raw =
-        res.data.data ||
-        res.data.settings ||
-        res.data.result ||
-        res.data.list ||
-        res.data ||
-        [];
-
-      const list = Array.isArray(raw) ? raw : [];
-
-      const companyList = list.map((item: any) => ({
-        name: item.name || item.companyName || item.title || "Unnamed Company",
-      }));
-
-      setCompanies(companyList);
-    } catch (err) {
-      console.error("Error fetching companies:", err);
-    }
-  };
-
-  fetchCompanies();
-}, []);
-
-  // Leads
+  // ✅ Fetch Leads
   const { data: leads = [], refetch: refetchLeads } = useQuery({
     queryKey: ["students-leads"],
     queryFn: fetchLeads,
   });
 
-  // Applications
+  // ✅ Fetch Applications
   const { data: appsData = [], refetch: refetchApps } = useQuery({
     queryKey: ["students-applications"],
     queryFn: fetchApplications,
     enabled: false,
   });
-  const [applications, setApplications] = useState<Application[]>([]);
 
   useEffect(() => {
     if (appsData.length && applications.length === 0) {
@@ -118,6 +115,7 @@ useEffect(() => {
     }
   }, [appsData, applications]);
 
+  // -------------------- HANDLERS -------------------- //
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) =>
     setFormData({ ...formData, [e.target.name]: e.target.value });
 
@@ -131,10 +129,16 @@ useEffect(() => {
         setFormData({ name: "", email: "", phone: "" });
         refetchLeads();
       } else {
-        setMessage({ text: res.data.message || "⚠️ Failed to save lead.", type: "error" });
+        setMessage({
+          text: res.data.message || "⚠️ Failed to save lead.",
+          type: "error",
+        });
       }
     } catch (err: any) {
-      setMessage({ text: err.response?.data?.message || "❌ Error saving lead.", type: "error" });
+      setMessage({
+        text: err.response?.data?.message || "❌ Error saving lead.",
+        type: "error",
+      });
     } finally {
       setLoading(false);
     }
@@ -154,23 +158,20 @@ useEffect(() => {
     }
     setCopiedId(leadId);
     setTimeout(() => setCopiedId(null), 2000);
+
     try {
-      await axios.post("/api/leads/store-link", { leadId, applicationLink: link });
+      await axios.post(`${API_BASE}/leads/store-link`, { leadId, applicationLink: link });
     } catch (err) {
       console.error("Failed to store link:", err);
     }
   };
 
-  const handleSaveClick = () => {
-    setShowAssignPopup(true);
-  };
+  const handleSaveClick = () => setShowAssignPopup(true);
 
-  // ✅ Save application updates (text + files)
   const handleUpdateApplication = async () => {
     if (!editingApp) return;
     try {
       const formData = new FormData();
-
       Object.entries(editingApp).forEach(([key, value]) => {
         if (!["_id", "createdAt", "__v"].includes(key) && value != null) {
           if (["string", "number", "boolean"].includes(typeof value)) {
@@ -178,7 +179,6 @@ useEffect(() => {
           }
         }
       });
-
       Object.entries(selectedFiles).forEach(([key, file]) => {
         if (file) formData.append(key, file);
       });
@@ -190,7 +190,6 @@ useEffect(() => {
       alert("✅ Application updated successfully");
       setEditingApp(null);
       setSelectedFiles({});
-
       const { data } = await axios.get(`${API_BASE}/application`);
       setApplications(data.applications || []);
     } catch (err: any) {
@@ -199,63 +198,52 @@ useEffect(() => {
     }
   };
 
-  // ✅ Assign Popup Submit
-const handleAssignSubmit = async () => {
-  if (!editingApp) return;
+  const handleAssignSubmit = async () => {
+    if (!editingApp) return;
+    try {
+      const updatedApp = {
+        ...editingApp,
+        companyName: assignData.companyName,
+        jobType: assignData.jobType,
+        mentorName: assignData.mentorName,
+        mentorDesignation: assignData.mentorDesignation,
+        empId:
+          assignData.empId ||
+          editingApp.empId ||
+          `EMP-${Math.floor(Math.random() * 10000)}`,
+      };
 
-  try {
-    const updatedApp = {
-      ...editingApp,
-      companyName: assignData.companyName,
-      jobType: assignData.jobType,
-      mentorName: assignData.mentorName,
-      mentorDesignation: assignData.mentorDesignation,
-      empId: assignData.empId, // ✅ include Employee ID
-    };
-
-    // ✅ Send update to backend
-    const res = await axios.put(`${API_BASE}/application/${editingApp._id}`, updatedApp);
-
-    if (res.data.success) {
-      alert("✅ Application assigned successfully!");
-
-      // ✅ Update the frontend state immediately for instant UI reflection
-      setApplications((prev) =>
-        prev.map((app) =>
-          app._id === editingApp._id ? { ...app, ...updatedApp } : app
-        )
-      );
-
-      // ✅ Clear popup state
-      setShowAssignPopup(false);
-      setEditingApp(null);
-      setAssignData({
-        companyName: "",
-        jobType: "",
-        mentorName: "",
-        mentorDesignation: "",
-        empId: "", // ✅ Added Employee ID
-      });
-
-      // ✅ Optional: re-fetch fresh data from backend to stay synced
-      await refetchApps();
-    } else {
-      alert(res.data.message || "⚠️ Failed to assign application.");
+      const res = await axios.put(`${API_BASE}/application/${editingApp._id}`, updatedApp);
+      if (res.data.success) {
+        alert("✅ Application assigned successfully!");
+        setApplications((prev) =>
+          prev.map((app) => (app._id === editingApp._id ? { ...app, ...updatedApp } : app))
+        );
+        setShowAssignPopup(false);
+        setEditingApp(null);
+        setAssignData({
+          companyName: "",
+          jobType: "",
+          mentorName: "",
+          mentorDesignation: "",
+          empId: "",
+        });
+        await refetchApps();
+      } else {
+        alert(res.data.message || "⚠️ Failed to assign application.");
+      }
+    } catch (err) {
+      console.error("❌ Error assigning application:", err);
+      alert("❌ Failed to update application assignment. Please try again.");
     }
-  } catch (err) {
-    console.error("❌ Error assigning application:", err);
-    alert("❌ Failed to update application assignment. Please try again.");
-  }
-};
+  };
 
-
-  
-
+  // -------------------- JSX RETURN -------------------- //
   return (
     <div className="p-4 sm:p-6 max-w-7xl mx-auto bg-white rounded shadow">
       <h2 className="text-xl font-bold mb-4">📋 Manage Leads & Applications</h2>
 
-      {/* Lead Form */}
+      {/* -------------------- LEAD FORM -------------------- */}
       <div className="flex flex-wrap items-center gap-2 mb-4">
         <input
           type="text"
@@ -293,16 +281,22 @@ const handleAssignSubmit = async () => {
       </div>
 
       {message.text && (
-        <p className={`mb-4 text-sm ${message.type === "success" ? "text-green-600" : "text-red-600"}`}>
+        <p
+          className={`mb-4 text-sm ${
+            message.type === "success" ? "text-green-600" : "text-red-600"
+          }`}
+        >
           {message.text}
         </p>
       )}
 
-      {/* Toggle */}
+      {/* -------------------- TOGGLE BUTTONS -------------------- */}
       <div className="flex gap-4 mb-4">
         <button
           onClick={() => setVerify("leads")}
-          className={`px-4 py-2 rounded ${Verify === "leads" ? "bg-gray-800 text-white" : "bg-gray-200"}`}
+          className={`px-4 py-2 rounded ${
+            Verify === "leads" ? "bg-gray-800 text-white" : "bg-gray-200"
+          }`}
         >
           Sent Links
         </button>
@@ -311,13 +305,15 @@ const handleAssignSubmit = async () => {
             setVerify("applications");
             refetchApps();
           }}
-          className={`px-4 py-2 rounded ${Verify === "applications" ? "bg-blue-800 text-white" : "bg-gray-200"}`}
+          className={`px-4 py-2 rounded ${
+            Verify === "applications" ? "bg-blue-800 text-white" : "bg-gray-200"
+          }`}
         >
           Applications
         </button>
       </div>
 
-      {/* Tables */}
+      {/* -------------------- TABLE SECTION -------------------- */}
       <div className="overflow-x-auto">
         {Verify === "leads" ? (
           <table className="table-auto w-full border text-sm">
@@ -331,16 +327,15 @@ const handleAssignSubmit = async () => {
             </thead>
             <tbody>
               {leads.map((lead) => {
-                const baseUrl = window.location.origin;
+                const baseUrl = import.meta.env.PUBLIC_APP_URL || window.location.origin;
                 const link = `${baseUrl}/application?token=${lead.applicationToken}`;
-
                 return (
                   <tr key={lead._id}>
                     <td className="border px-4 py-2">{lead.name}</td>
                     <td className="border px-4 py-2">{lead.email}</td>
                     <td className="border px-4 py-2">{lead.phone}</td>
                     <td className="border px-4 py-2">
-                      {link ? (
+                      {lead.applicationToken ? (
                         <button
                           onClick={() => copyToClipboard(link, lead._id)}
                           className={`px-3 py-1 rounded text-white ${
@@ -375,7 +370,9 @@ const handleAssignSubmit = async () => {
                   <td className="border px-4 py-2">{app.name}</td>
                   <td className="border px-4 py-2">{app.email}</td>
                   <td className="border px-4 py-2">{app.phone}</td>
-                  <td className="border px-4 py-2">{new Date(app.createdAt).toLocaleDateString()}</td>
+                  <td className="border px-4 py-2">
+                    {new Date(app.createdAt).toLocaleDateString()}
+                  </td>
                   <td className="border px-4 py-2">
                     <button
                       onClick={() => setEditingApp(app)}
@@ -390,157 +387,157 @@ const handleAssignSubmit = async () => {
           </table>
         )}
       </div>
-{/* ✅ Popup for Application Details */}
-{editingApp && !showAssignPopup && (
-  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-    <div className="bg-white w-full max-w-4xl max-h-[90vh] rounded-lg shadow-lg flex flex-col overflow-hidden">
-      
-      {/* Header */}
-      <div className="flex justify-between items-center border-b p-4 bg-gray-50">
-        <h3 className="text-xl font-semibold text-gray-800">Application Details</h3>
-        <button
-          onClick={() => setEditingApp(null)}
-          className="text-gray-500 hover:text-gray-700 text-lg"
-        >
-          ✕
-        </button>
-      </div>
 
-      {/* Body */}
-      <div className="p-5 flex-1 overflow-y-auto bg-white">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-          {Object.entries(editingApp).map(([key, value]) => {
-            // Skip system fields + lead field
-            if (["_id", "createdAt", "__v", "lead"].includes(key)) return null;
+      {/* -------------------- POPUPS -------------------- */}
+      {editingApp && !showAssignPopup && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white w-full max-w-4xl max-h-[90vh] rounded-lg shadow-lg flex flex-col overflow-hidden">
+            <div className="flex justify-between items-center border-b p-4 bg-gray-50">
+              <h3 className="text-xl font-semibold text-gray-800">Application Details</h3>
+              <button
+                onClick={() => setEditingApp(null)}
+                className="text-gray-500 hover:text-gray-700 text-lg"
+              >
+                ✕
+              </button>
+            </div>
 
-            const downloadOnlyFields = ["aadharFile", "bankPassbook", "pfFile", "resume"];
-            const isDownloadOnly = downloadOnlyFields.includes(key);
+            <div className="p-5 flex-1 overflow-y-auto bg-white">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                {Object.entries(editingApp).map(([key, value]) => {
+                  if (["_id", "createdAt", "__v", "lead"].includes(key)) return null;
 
-            if (isDownloadOnly) {
-              // ✅ Download-only fields
-              return (
-                <div key={key}>
-                  <label className="block text-sm font-semibold capitalize text-gray-700 mb-2">
-                    {key.replace(/([A-Z])/g, " $1")}
-                  </label>
-                  {value ? (
-                    <a
-                      href={`https://training-center-frontend-9j3z.onrender.com${value.startsWith("/") ? value : "/" + value}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-800 text-sm font-medium"
-                    >
-                      📄 Download {key.replace(/([A-Z])/g, " $1")}
-                    </a>
-                  ) : (
-                    <p className="text-gray-400 text-sm">No file uploaded</p>
-                  )}
-                </div>
-              );
-            }
+                  const downloadOnlyFields = ["aadharFile", "bankPassbook", "pfFile", "resume"];
+                  const isDownloadOnly = downloadOnlyFields.includes(key);
 
-            // Reference file (read-only)
-            if (key === "referenceFile") {
-              return (
-                <div key={key}>
-                  <label className="block text-sm font-semibold capitalize text-gray-700 mb-2">
-                    {key.replace(/([A-Z])/g, " $1")}
-                  </label>
-                  <input
-                    type="text"
-                    value={value || ""}
-                    readOnly
-                    className="border border-gray-300 rounded-lg px-3 py-2 w-full bg-gray-100 text-gray-700"
-                  />
-                </div>
-              );
-            }
-
-            // Editable fields
-            return (
-              <div key={key}>
-                <label className="block text-sm font-semibold capitalize text-gray-700 mb-2">
-                  {key.replace(/([A-Z])/g, " $1")}
-                </label>
-                <input
-                  type="text"
-                  value={value || ""}
-                  onChange={(e) =>
-                    setEditingApp((prev) =>
-                      prev ? { ...prev, [key]: e.target.value } : prev
-                    )
+                  if (isDownloadOnly) {
+                    return (
+                      <div key={key}>
+                        <label className="block text-sm font-semibold capitalize text-gray-700 mb-2">
+                          {key.replace(/([A-Z])/g, " $1")}
+                        </label>
+                        {value ? (
+                          <a
+                            href={`https://training-center-frontend-9j3z.onrender.com${
+                              value.startsWith("/") ? value : "/" + value
+                            }`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-800 text-sm font-medium"
+                          >
+                            📄 Download {key.replace(/([A-Z])/g, " $1")}
+                          </a>
+                        ) : (
+                          <p className="text-gray-400 text-sm">No file uploaded</p>
+                        )}
+                      </div>
+                    );
                   }
-                  className="border border-gray-300 rounded-lg px-3 py-2 w-full focus:ring focus:ring-blue-300 focus:border-blue-400"
-                />
+
+                  if (key === "referenceFile") {
+                    return (
+                      <div key={key}>
+                        <label className="block text-sm font-semibold capitalize text-gray-700 mb-2">
+                          {key.replace(/([A-Z])/g, " $1")}
+                        </label>
+                        <input
+                          type="text"
+                          value={value || ""}
+                          readOnly
+                          className="border border-gray-300 rounded-lg px-3 py-2 w-full bg-gray-100 text-gray-700"
+                        />
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div key={key}>
+                      <label className="block text-sm font-semibold capitalize text-gray-700 mb-2">
+                        {key.replace(/([A-Z])/g, " $1")}
+                      </label>
+                      <input
+                        type="text"
+                        value={value || ""}
+                        onChange={(e) =>
+                          setEditingApp((prev) =>
+                            prev ? { ...prev, [key]: e.target.value } : prev
+                          )
+                        }
+                        className="border border-gray-300 rounded-lg px-3 py-2 w-full focus:ring focus:ring-blue-300 focus:border-blue-400"
+                      />
+                    </div>
+                  );
+                })}
               </div>
-            );
-          })}
+            </div>
+
+            <div className="flex justify-end gap-3 border-t p-4 bg-gray-50">
+              <button
+                onClick={() => setEditingApp(null)}
+                className="px-4 py-2 bg-gray-400 text-white rounded-lg hover:bg-gray-500"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleUpdateApplication}
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+              >
+                Update
+              </button>
+              <button
+                onClick={handleSaveClick}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              >
+                Approve
+              </button>
+            </div>
+          </div>
         </div>
-      </div>
-
-      {/* Footer */}
-      <div className="flex justify-end gap-3 border-t p-4 bg-gray-50">
-        <button
-          onClick={() => setEditingApp(null)}
-          className="px-4 py-2 bg-gray-400 text-white rounded-lg hover:bg-gray-500"
-        >
-          Cancel
-        </button>
-        <button
-          onClick={handleUpdateApplication}
-          className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
-        >
-          Update
-        </button>
-        <button
-          onClick={handleSaveClick}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-        >
-          Approve
-        </button>
-      </div>
-    </div>
-  </div>
-)}
+      )}
 
 
-      {/* Popup for assigning */}
+      {/* Popup for Assigning */}
       {showAssignPopup && editingApp && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white w-[90%] max-w-md rounded shadow-lg p-6">
             <h3 className="text-lg font-semibold mb-4">Assign Company, Job & Mentor</h3>
             <div className="space-y-4">
               <div>
-          <label className="block mb-1 font-medium text-gray-700">
-            Employee ID
-          </label>
-          <input
-            type="text"
-            value={assignData.empId || editingApp.empId || `EMP-${Math.floor(Math.random() * 10000)}`}
-            readOnly
-            className="border p-2 w-full rounded bg-gray-100 text-gray-700 cursor-not-allowed"
-          />
-        </div>
-             <div>
-  <label className="block mb-1 font-medium">Company Name</label>
- <select
-  value={assignData.companyName}
-  onChange={(e) => setAssignData({ ...assignData, companyName: e.target.value })}
-  className="border p-2 w-full rounded"
->
-  <option value="">-- Select Company --</option>
-  {companies.length > 0 ? (
-    companies.map((c, i) => (
-      <option key={i} value={c.name}>
-        {c.name}
-      </option>
-    ))
-  ) : (
-    <option disabled>No companies available</option>
-  )}
-</select>
+                <label className="block mb-1 font-medium text-gray-700">Employee ID</label>
+                <input
+                  type="text"
+                  value={
+                    assignData.empId ||
+                    editingApp.empId ||
+                    `EMP-${Math.floor(Math.random() * 10000)}`
+                  }
+                  readOnly
+                  className="border p-2 w-full rounded bg-gray-100 text-gray-700 cursor-not-allowed"
+                />
+              </div>
 
-</div>
+              <div>
+                <label className="block mb-1 font-medium">Company Name</label>
+                <select
+                  value={assignData.companyName}
+                  onChange={(e) =>
+                    setAssignData({ ...assignData, companyName: e.target.value })
+                  }
+                  className="border p-2 w-full rounded"
+                >
+                  <option value="">-- Select Company --</option>
+                  {companies.length > 0 ? (
+                    companies.map((c, i) => (
+                      <option key={i} value={c.name}>
+                        {c.name}
+                      </option>
+                    ))
+                  ) : (
+                    <option disabled>No companies available</option>
+                  )}
+                </select>
+              </div>
+
               <div>
                 <label className="block mb-1 font-medium">Job Type</label>
                 <select
@@ -553,15 +550,19 @@ const handleAssignSubmit = async () => {
                   <option value="Full Time">Full Time</option>
                 </select>
               </div>
+
               <div>
                 <label className="block mb-1 font-medium">Mentor Name</label>
                 <input
                   type="text"
                   value={assignData.mentorName}
-                  onChange={(e) => setAssignData({ ...assignData, mentorName: e.target.value })}
+                  onChange={(e) =>
+                    setAssignData({ ...assignData, mentorName: e.target.value })
+                  }
                   className="border p-2 w-full rounded"
                 />
               </div>
+
               <div>
                 <label className="block mb-1 font-medium">Mentor Designation</label>
                 <input
@@ -574,6 +575,7 @@ const handleAssignSubmit = async () => {
                 />
               </div>
             </div>
+
             <div className="flex justify-end gap-2 mt-6">
               <button
                 onClick={() => setShowAssignPopup(false)}
