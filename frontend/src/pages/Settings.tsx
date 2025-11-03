@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
+import.meta.env.VITE_API_BASE;
 
 const Settings = () => {
   const [formData, setFormData] = useState({
