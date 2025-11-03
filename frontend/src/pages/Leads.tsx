@@ -427,7 +427,7 @@ const handleAssignSubmit = async () => {
                   </label>
                   {value ? (
                     <a
-                      href={`https://training-center-frontend-9j3z.onrender.com${value.startsWith("/") ? value : "/" + value}`}
+                      href={`https://training-center-backend-9j3z.onrender.com${value.startsWith("/") ? value : "/" + value}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-800 text-sm font-medium"
