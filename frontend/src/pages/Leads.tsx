@@ -332,7 +332,7 @@ const handleAssignSubmit = async () => {
             <tbody>
               {leads.map((lead) => {
                 const baseUrl = window.location.origin;
-                const link = `${baseUrl}/api/application/form?token=${lead.applicationToken}`;
+                const link = `${baseUrl}/application?token=${lead.applicationToken}`;
 
                 return (
                   <tr key={lead._id}>
