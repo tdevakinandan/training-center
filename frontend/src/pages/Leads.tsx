@@ -28,18 +28,18 @@ interface Application {
   [key: string]: any;
 }
 
-const API_BASE = import.meta.env.VITE_API_BASE;
+const VITE_API_BASE = import.meta.env.VITE_VITE_API_BASE;
 
 const fetchLeads = async (): Promise<Lead[]> => {
   const { data } = await axios.get<{ success: boolean; leads?: Lead[] }>(
-    `${API_BASE}/leads`
+    `${VITE_API_BASE}/leads`
   );
   return data.leads || [];
 };
 
 const fetchApplications = async (): Promise<Application[]> => {
   const { data } = await axios.get<{ success: boolean; applications: Application[] }>(
-    `${API_BASE}/application`
+    `${VITE_API_BASE}/application`
   );
   return data.applications || [];
 };
@@ -71,7 +71,7 @@ const Leads: React.FC = () => {
 useEffect(() => {
   const fetchCompanies = async () => {
     try {
-      const res = await axios.get(`${API_BASE}/settings/list`);
+      const res = await axios.get(`${VITE_API_BASE}/settings/list`);
       console.log("Company API Response:", res.data);
 
       // Handle all possible API structures
@@ -125,7 +125,7 @@ useEffect(() => {
     setMessage({ text: "", type: "" });
     setLoading(true);
     try {
-      const res = await axios.post(`${API_BASE}/leads`, formData);
+      const res = await axios.post(`${VITE_API_BASE}/leads`, formData);
       if (res.data.success) {
         setMessage({ text: "✅ Lead saved successfully!", type: "success" });
         setFormData({ name: "", email: "", phone: "" });
@@ -183,7 +183,7 @@ useEffect(() => {
         if (file) formData.append(key, file);
       });
 
-      await axios.put(`${API_BASE}/application/${editingApp._id}`, formData, {
+      await axios.put(`${VITE_API_BASE}/application/${editingApp._id}`, formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
 
@@ -191,7 +191,7 @@ useEffect(() => {
       setEditingApp(null);
       setSelectedFiles({});
 
-      const { data } = await axios.get(`${API_BASE}/application`);
+      const { data } = await axios.get(`${VITE_API_BASE}/application`);
       setApplications(data.applications || []);
     } catch (err: any) {
       console.error("Update failed:", err.response || err);
@@ -214,7 +214,7 @@ const handleAssignSubmit = async () => {
     };
 
     // ✅ Send update to backend
-    const res = await axios.put(`${API_BASE}/application/${editingApp._id}`, updatedApp);
+    const res = await axios.put(`${VITE_API_BASE}/application/${editingApp._id}`, updatedApp);
 
     if (res.data.success) {
       alert("✅ Application assigned successfully!");
@@ -331,7 +331,7 @@ const handleAssignSubmit = async () => {
             </thead>
             <tbody>
               {leads.map((lead) => {
-                const baseUrl = API_BASE.replace("/api", "");
+                const baseUrl = VITE_API_BASE.replace("/api", "");
                 const link = lead.applicationToken
                   ? `${baseUrl}/application?token=${lead.applicationToken}`
                   : "";
