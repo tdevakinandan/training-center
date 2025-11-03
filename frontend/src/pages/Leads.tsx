@@ -395,48 +395,45 @@ const handleAssignSubmit = async () => {
 {/* ✅ Popup for Application Details */}
 {editingApp && !showAssignPopup && (
   <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-    <div className="bg-white w-full max-w-3xl max-h-[90vh] rounded shadow-lg flex flex-col overflow-y-auto">
-
+    <div className="bg-white w-full max-w-4xl max-h-[90vh] rounded-lg shadow-lg flex flex-col overflow-hidden">
+      
       {/* Header */}
-      <div className="flex justify-between items-center border-b p-4">
-        <h3 className="text-lg font-semibold">Application Details</h3>
+      <div className="flex justify-between items-center border-b p-4 bg-gray-50">
+        <h3 className="text-xl font-semibold text-gray-800">Application Details</h3>
         <button
           onClick={() => setEditingApp(null)}
-          className="text-gray-500 hover:text-gray-700"
+          className="text-gray-500 hover:text-gray-700 text-lg"
         >
-          ✖
+          ✕
         </button>
       </div>
 
       {/* Body */}
-      <div className="p-4 flex-1 overflow-y-auto">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="p-5 flex-1 overflow-y-auto bg-white">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
           {Object.entries(editingApp).map(([key, value]) => {
             // Skip system fields + lead field
             if (["_id", "createdAt", "__v", "lead"].includes(key)) return null;
 
-            // Fields that are download-only (Aadhar, Bank Passbook, PF, Resume)
             const downloadOnlyFields = ["aadharFile", "bankPassbook", "pfFile", "resume"];
             const isDownloadOnly = downloadOnlyFields.includes(key);
 
             if (isDownloadOnly) {
-              // ✅ Download-only: show download link
+              // ✅ Download-only fields
               return (
                 <div key={key}>
-                  <label className="block text-sm font-medium capitalize mb-1">
+                  <label className="block text-sm font-semibold capitalize text-gray-700 mb-2">
                     {key.replace(/([A-Z])/g, " $1")}
                   </label>
                   {value ? (
-                    <div className="flex items-center gap-2">
-                     <a
-                      href={`https://training-center-backend-wd2a.onrender.com${value.startsWith("/") ? value : "/" + value}`}
+                    <a
+                      href={`https://training-center-frontend-9j3z.onrender.com${value.startsWith("/") ? value : "/" + value}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-blue-600 underline text-sm flex items-center gap-1"
+                      className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-800 text-sm font-medium"
                     >
                       📄 Download {key.replace(/([A-Z])/g, " $1")}
                     </a>
-                    </div>
                   ) : (
                     <p className="text-gray-400 text-sm">No file uploaded</p>
                   )}
@@ -444,27 +441,27 @@ const handleAssignSubmit = async () => {
               );
             }
 
-            // ReferenceFile as read-only text
+            // Reference file (read-only)
             if (key === "referenceFile") {
               return (
                 <div key={key}>
-                  <label className="block text-sm font-medium capitalize mb-1">
+                  <label className="block text-sm font-semibold capitalize text-gray-700 mb-2">
                     {key.replace(/([A-Z])/g, " $1")}
                   </label>
                   <input
                     type="text"
                     value={value || ""}
                     readOnly
-                    className="border p-2 w-full rounded bg-gray-100 text-gray-700"
+                    className="border border-gray-300 rounded-lg px-3 py-2 w-full bg-gray-100 text-gray-700"
                   />
                 </div>
               );
             }
 
-            // Editable text fields
+            // Editable fields
             return (
               <div key={key}>
-                <label className="block text-sm font-medium capitalize mb-1">
+                <label className="block text-sm font-semibold capitalize text-gray-700 mb-2">
                   {key.replace(/([A-Z])/g, " $1")}
                 </label>
                 <input
@@ -475,7 +472,7 @@ const handleAssignSubmit = async () => {
                       prev ? { ...prev, [key]: e.target.value } : prev
                     )
                   }
-                  className="border p-2 w-full rounded"
+                  className="border border-gray-300 rounded-lg px-3 py-2 w-full focus:ring focus:ring-blue-300 focus:border-blue-400"
                 />
               </div>
             );
@@ -484,22 +481,22 @@ const handleAssignSubmit = async () => {
       </div>
 
       {/* Footer */}
-      <div className="flex justify-end gap-2 border-t p-3">
+      <div className="flex justify-end gap-3 border-t p-4 bg-gray-50">
         <button
           onClick={() => setEditingApp(null)}
-          className="px-3 py-1 bg-gray-400 text-white rounded"
+          className="px-4 py-2 bg-gray-400 text-white rounded-lg hover:bg-gray-500"
         >
           Cancel
         </button>
         <button
           onClick={handleUpdateApplication}
-          className="px-3 py-1 bg-green-600 text-white rounded"
+          className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
         >
           Update
         </button>
         <button
           onClick={handleSaveClick}
-          className="px-3 py-1 bg-blue-600 text-white rounded"
+          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
         >
           Approve
         </button>
@@ -507,8 +504,6 @@ const handleAssignSubmit = async () => {
     </div>
   </div>
 )}
-
-
 
 
       {/* Popup for assigning */}
