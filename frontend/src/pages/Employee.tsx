@@ -17,7 +17,7 @@ interface Application {
   offerDate?: string;
   appointmentDate?: string;
   experienceDate?: string;
-  internshipDate?: string; // ✅ added for internship
+  internshipDate?: string;
   payslipDate?: string;
   nocDate?: string;
 }
@@ -34,16 +34,23 @@ interface UpdateDateInput {
   date: string;
 }
 
+// ✅ Use environment variable for API base
+const API = import.meta.env.VITE_API_BASE;
+
 // 🔹 Fetch all applications
 const fetchApplications = async (): Promise<Application[]> => {
-  const { data } = await axios.get("/api/application");
-  return data.applications || [];
+  try {
+    const { data } = await axios.get(`${API}/application`);
+    return data.applications || [];
+  } catch (error) {
+    console.error("❌ Error fetching applications:", error);
+    return [];
+  }
 };
 
 const Employee = () => {
   const queryClient = useQueryClient();
 
-  // 🔹 Fetch applications
   const { data: applications = [], isLoading } = useQuery({
     queryKey: ["applications"],
     queryFn: fetchApplications,
@@ -52,36 +59,34 @@ const Employee = () => {
   const [selectedApp, setSelectedApp] = useState<Application | null>(null);
   const [downloading, setDownloading] = useState(false);
 
-  // 🔹 Update document date mutation (✅ updated)
+  // 🔹 Mutation for updating document date
   const updateDateMutation = useMutation({
     mutationFn: async ({ id, type, date }: UpdateDateInput) => {
-      const { data } = await axios.patch(`/api/application/${id}/document-date`, {
+      const { data } = await axios.patch(`${API}/application/${id}/document-date`, {
         type,
         date,
       });
-      return data.application; // ✅ Return updated application
+      return data.application;
     },
     onSuccess: (updatedApp) => {
       queryClient.invalidateQueries({ queryKey: ["applications"] });
       alert("✅ Date saved successfully!");
-
-      // ✅ Instantly reflect updated date in UI
       setSelectedApp((prev) =>
         prev && prev._id === updatedApp._id ? updatedApp : prev
       );
     },
     onError: (err: any) => {
-      console.error("Date update error:", err);
-      alert("❌ Failed to save date. Please try again.");
+      console.error("❌ Date update error:", err);
+      alert("Failed to save date. Please try again.");
     },
   });
 
-  // 🔹 Handle file download
+  // 🔹 Download document handler
   const handleDownload = async (app: Application, type: string) => {
     try {
       setDownloading(true);
       const response = await axios.post(
-        `/api/application/${type}/${app._id}`,
+        `${API}/application/${type}/${app._id}`,
         {},
         { responseType: "blob" }
       );
@@ -95,15 +100,19 @@ const Employee = () => {
       link.click();
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
-    } catch (err) {
-      console.error("Download error:", err);
-      alert("❌ Failed to download document.");
+    } catch (err: any) {
+      console.error("❌ Download error:", err);
+      if (err.response?.status === 404) {
+        alert(`Document not found for ${app.name}.`);
+      } else {
+        alert("Failed to download document.");
+      }
     } finally {
       setDownloading(false);
     }
   };
 
-  // 🔹 When user changes a document date
+  // 🔹 Date change handler
   const handleDateChange = (
     id: string,
     type: UpdateDateInput["type"],
@@ -120,7 +129,7 @@ const Employee = () => {
       <h2 className="text-xl font-bold mb-4">👥 Enrolled Employees</h2>
 
       {isLoading ? (
-        <p>Loading...</p>
+        <p>Loading employees...</p>
       ) : applications.length === 0 ? (
         <p>No employees enrolled yet.</p>
       ) : (
@@ -177,7 +186,7 @@ const Employee = () => {
               </span>
             </p>
 
-            {/* 🔸 Internship — only one certificate */}
+            {/* Internship (Single Certificate) */}
             {selectedApp.jobType === "Internship" ? (
               <div className="flex items-center gap-2 mb-4">
                 <button
@@ -198,7 +207,7 @@ const Employee = () => {
                 />
               </div>
             ) : (
-              /* 🔸 Full-Time — multiple documents with date inputs */
+              // Full-Time Employees (Multiple Documents)
               <div className="flex flex-col gap-3 mb-4">
                 {(
                   [
@@ -220,7 +229,6 @@ const Employee = () => {
                       ? "Payslip"
                       : "NOC";
 
-                  // ✅ Choose button color
                   const colorClass =
                     type === "offer-letter"
                       ? "bg-green-600 hover:bg-green-700"
@@ -232,7 +240,6 @@ const Employee = () => {
                       ? "bg-purple-600 hover:bg-purple-700"
                       : "bg-red-600 hover:bg-red-700";
 
-                  // ✅ Pick correct date value
                   const dateValue =
                     type === "offer-letter"
                       ? selectedApp.offerDate || ""
@@ -254,7 +261,6 @@ const Employee = () => {
                         {downloading ? "Generating..." : typeLabel}
                       </button>
 
-                      {/* ✅ Date input for each document */}
                       <input
                         type="date"
                         className="border px-2 py-1 rounded text-sm"

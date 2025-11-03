@@ -2,14 +2,16 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 
 const Settings = () => {
+  const API = import.meta.env.VITE_API_BASE; // ✅ Move outside so it's available globally
+
   const [formData, setFormData] = useState({
     companyName: "",
     logoAlignment: "left",
     address: "",
     authorizedPerson: "",
-    authorizedDesignation: "", // ✅ new field
+    authorizedDesignation: "",
     purpose: "",
-    place: "", // ✅ new field
+    place: "",
     phone: "",
     email: "",
   });
@@ -19,61 +21,66 @@ const Settings = () => {
   const [companies, setCompanies] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  // 🔹 Fetch companies on load
   useEffect(() => {
     fetchCompanies();
   }, []);
 
   const fetchCompanies = async () => {
     try {
-      const res = await axios.get("https://training-center-frontend-9j3z.onrender.com/api/settings/list");
+      const res = await axios.get(`${API}/settings/list`);
       setCompanies(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
-      console.error("Error fetching companies:", err);
+      console.error("❌ Error fetching companies:", err);
       setCompanies([]);
     } finally {
       setLoading(false);
     }
   };
 
+  // 🔹 Handle form field change
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData((p) => ({ ...p, [name]: value }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  // 🔹 Handle file input change
   const handleFileChange = (e, type) => {
     const file = e.target.files?.[0] || null;
     if (type === "logo") setCompanyLogo(file);
     if (type === "stamp") setStamp(file);
   };
 
+  // 🔹 Save or update settings
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
       const data = new FormData();
-      Object.keys(formData).forEach((key) => data.append(key, formData[key]));
+      Object.entries(formData).forEach(([key, value]) => data.append(key, value));
       if (companyLogo) data.append("companyLogo", companyLogo);
       if (stamp) data.append("stamp", stamp);
 
-      const res = await axios.post("https://training-center-frontend-9j3z.onrender.com/api/settings/save", data, {
+      const res = await axios.post(`${API}/settings/save`, data, {
         headers: { "Content-Type": "multipart/form-data" },
       });
 
-      alert(res.data.message);
+      alert(res.data.message || "✅ Settings saved successfully!");
       await fetchCompanies();
     } catch (error) {
-      console.error("Error saving settings:", error);
-      alert("Failed to save settings.");
+      console.error("❌ Error saving settings:", error);
+      alert("❌ Failed to save settings. Please check your connection or server.");
     }
   };
 
+  // 🔹 When selecting a company from the list
   const handleSelectCompany = (e) => {
     const selected = companies.find((c) => c.companyName === e.target.value);
     if (selected) {
       setFormData({
         companyName: selected.companyName,
-        logoAlignment: selected.logoAlignment,
-        address: selected.address,
-        authorizedPerson: selected.authorizedPerson,
+        logoAlignment: selected.logoAlignment || "left",
+        address: selected.address || "",
+        authorizedPerson: selected.authorizedPerson || "",
         authorizedDesignation: selected.authorizedDesignation || "",
         purpose: selected.purpose || "",
         place: selected.place || "",
@@ -95,6 +102,9 @@ const Settings = () => {
     }
   };
 
+  // -------------------------------
+  // 🔹 JSX UI
+  // -------------------------------
   return (
     <div className="p-6 max-w-2xl mx-auto bg-white shadow rounded-lg">
       <h1 className="text-2xl font-semibold mb-6 text-gray-800">Company Settings</h1>
@@ -126,6 +136,7 @@ const Settings = () => {
       <form onSubmit={handleSubmit} className="space-y-5">
         <Input label="Company Name" name="companyName" value={formData.companyName} onChange={handleChange} required />
         <FileInput label="Company Logo" onChange={(e) => handleFileChange(e, "logo")} preview={companyLogo} />
+
         <Select
           label="Logo Alignment"
           name="logoAlignment"
@@ -133,12 +144,13 @@ const Settings = () => {
           onChange={handleChange}
           options={["left", "center", "right"]}
         />
+
         <Textarea label="Address" name="address" value={formData.address} onChange={handleChange} />
         <FileInput label="Stamp" onChange={(e) => handleFileChange(e, "stamp")} preview={stamp} />
+
         <Input label="Authorized Person" name="authorizedPerson" value={formData.authorizedPerson} onChange={handleChange} />
         <Input label="Authorized Designation" name="authorizedDesignation" value={formData.authorizedDesignation} onChange={handleChange} />
-        
-        {/* ✅ Purpose Dropdown */}
+
         <Select
           label="Purpose"
           name="purpose"
@@ -153,12 +165,16 @@ const Settings = () => {
             "Loan Application",
           ]}
         />
+
         <Input label="Place" name="place" value={formData.place} onChange={handleChange} />
         <Input label="Phone" name="phone" value={formData.phone} onChange={handleChange} />
-        <Input label="Email" name="email" value={formData.email} onChange={handleChange} type="email" />
+        <Input label="Email" name="email" type="email" value={formData.email} onChange={handleChange} />
 
         <div className="flex justify-end">
-          <button type="submit" className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+          <button
+            type="submit"
+            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          >
             Save / Update
           </button>
         </div>
@@ -167,7 +183,7 @@ const Settings = () => {
   );
 };
 
-// Small UI Components
+// ✅ Reusable small components
 const Input = ({ label, ...props }) => (
   <div>
     <label className="block text-gray-700 mb-2 font-medium">{label}</label>
@@ -186,7 +202,13 @@ const FileInput = ({ label, onChange, preview }) => (
   <div>
     <label className="block text-gray-700 mb-2 font-medium">{label}</label>
     <input type="file" accept="image/*" onChange={onChange} className="w-full text-gray-600" />
-    {preview && <img src={URL.createObjectURL(preview)} alt="Preview" className="mt-3 h-16 object-contain" />}
+    {preview && (
+      <img
+        src={URL.createObjectURL(preview)}
+        alt="Preview"
+        className="mt-3 h-16 object-contain border rounded"
+      />
+    )}
   </div>
 );
 
