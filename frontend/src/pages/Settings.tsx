@@ -25,7 +25,7 @@ const Settings = () => {
 
   const fetchCompanies = async () => {
     try {
-      const res = await axios.get("http://localhost:5000/api/settings/list");
+      const res = await axios.get("https://training-center-backend-wd2a.onrender.com/api/settings/list");
       setCompanies(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
       console.error("Error fetching companies:", err);
@@ -54,7 +54,7 @@ const Settings = () => {
       if (companyLogo) data.append("companyLogo", companyLogo);
       if (stamp) data.append("stamp", stamp);
 
-      const res = await axios.post("http://localhost:5000/api/settings/save", data, {
+      const res = await axios.post("https://training-center-backend-wd2a.onrender.com/api/settings/save", data, {
         headers: { "Content-Type": "multipart/form-data" },
       });
 
