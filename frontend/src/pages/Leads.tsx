@@ -429,7 +429,7 @@ const handleAssignSubmit = async () => {
                   {value ? (
                     <div className="flex items-center gap-2">
                       <a
-                        href={`https://training-center-backend-wd2a.onrender.com${value.startsWith("/") ? value : "/" + value}`}
+                        href={`https://training-center-frontend-9j3z.onrender.com${value.startsWith("/") ? value : "/" + value}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-blue-600 underline text-sm flex items-center gap-1"
