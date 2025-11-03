@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useQuery } from "@tanstack/react-query";
-import.meta.env.VITE_API_BASE;
 
 interface Lead {
   _id: string;
