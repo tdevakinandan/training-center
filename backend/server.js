@@ -31,18 +31,7 @@ const frontendPath = path.join(__dirname, "../frontend/dist");
 app.use(express.static(frontendPath));
 
 // Serve uploads
-app.use(
-  "/uploads",
-  express.static("uploads", {
-    setHeaders: (res, path) => {
-      if (path.endsWith(".pdf")) {
-        res.setHeader("Content-Type", "application/pdf");
-        res.setHeader("Content-Disposition", "inline"); // 👈 open in browser instead of download
-      }
-    },
-  })
-);
-
+app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
 // SPA fallback
 app.get("*", (_, res) => {
