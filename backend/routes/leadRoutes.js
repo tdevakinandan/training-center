@@ -36,7 +36,7 @@ router.post("/", async (req, res) => {
     let lead = await Lead.findOne({ $or: [{ email }, { phone }] });
 
     if (lead) {
-      // Reuse existing token instead of creating new one
+      // ✅ Use existing token if lead already exists
       const existingLink = `${process.env.PUBLIC_APP_URL}/application?token=${lead.applicationToken}`;
       return res.json({
         success: true,
@@ -46,9 +46,10 @@ router.post("/", async (req, res) => {
       });
     }
 
-    // 🧩 Create new token and lead
+    // 🧩 Generate new token
     const token = crypto.randomBytes(24).toString("hex");
 
+    // 🧩 Create new lead entry
     lead = await Lead.create({
       name,
       email,
@@ -67,7 +68,6 @@ router.post("/", async (req, res) => {
   } catch (err) {
     console.error("❌ Create lead error:", err);
 
-    // Handle duplicate key error (MongoDB code 11000)
     if (err.code === 11000) {
       return res.status(400).json({
         success: false,
@@ -100,7 +100,9 @@ router.get("/", async (_, res) => {
 ============================================================ */
 router.get("/by-token/:token", async (req, res) => {
   try {
-    const lead = await Lead.findOne({ applicationToken: req.params.token });
+    const { token } = req.params;
+    const lead = await Lead.findOne({ applicationToken: token });
+
     if (!lead) {
       return res.status(404).json({
         success: false,
@@ -124,7 +126,7 @@ router.get("/by-token/:token", async (req, res) => {
 });
 
 /* ============================================================
-   📌 POST: Store copied link (for tracking user interaction)
+   📌 POST: Store copied link (tracking)
 ============================================================ */
 router.post("/store-link", async (req, res) => {
   try {
@@ -137,7 +139,11 @@ router.post("/store-link", async (req, res) => {
       });
     }
 
-    await Lead.findByIdAndUpdate(leadId, { lastCopiedLink: applicationLink });
+    await Lead.findByIdAndUpdate(leadId, {
+      lastCopiedLink: applicationLink,
+      lastCopiedAt: new Date(),
+    });
+
     res.json({
       success: true,
       message: "Link stored successfully",
@@ -164,27 +170,16 @@ router.get("/download/:filename", (req, res) => {
       });
     }
 
-    // 🧩 Set correct MIME type and send file
-    const mimeType = mime.getType(filePath) || "application/pdf";
+    // 🧩 Send file with correct MIME type
+    const mimeType = mime.getType(filePath) || "application/octet-stream";
     res.setHeader("Content-Type", mimeType);
-    res.setHeader(
-      "Content-Disposition",
-      `inline; filename="${path.basename(filename)}"`
-    );
+    res.setHeader("Content-Disposition", `inline; filename="${filename}"`);
 
     const fileStream = fs.createReadStream(filePath);
-    fileStream.on("error", (err) => {
-      console.error("❌ Stream error:", err);
-      return res.status(500).end("Error reading file.");
-    });
-
     fileStream.pipe(res);
   } catch (err) {
     console.error("❌ Download error:", err);
-    res.status(500).json({
-      success: false,
-      message: "Server error",
-    });
+    res.status(500).json({ success: false, message: "Server error" });
   }
 });
 
