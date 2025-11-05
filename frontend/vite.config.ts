@@ -4,23 +4,32 @@ import path from "path";
 import { componentTagger } from "lovable-tagger";
 
 // https://vitejs.dev/config/
-export default defineConfig(({ mode }) => ({
-  server: {
-    host: "::",       // Listen on all network interfaces
-    port: 8080,       // Dev server port
-    open: false,      // Do not auto-open browser
-    proxy: {
-      "/api": {
-        target: "http://localhost:5000", // Backend API
-        changeOrigin: true,
-        secure: false,
+export default defineConfig(({ mode }) => {
+  // ✅ Automatically switch API target based on environment
+  const isDev = mode === "development";
+
+  const apiTarget = isDev
+    ? "http://localhost:5000" // local backend
+    : "https://training-center-backend-w181.onrender.com"; // deployed backend
+
+  return {
+    server: {
+      host: "::", // Listen on all interfaces
+      port: 8080,
+      open: false,
+      proxy: {
+        "/api": {
+          target: apiTarget,
+          changeOrigin: true,
+          secure: false,
+        },
       },
     },
-  },
-  plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),
-  resolve: {
-    alias: {
-      "@": path.resolve(__dirname, "./src"),
+    plugins: [react(), isDev && componentTagger()].filter(Boolean),
+    resolve: {
+      alias: {
+        "@": path.resolve(__dirname, "./src"),
+      },
     },
-  },
-}));
+  };
+});
